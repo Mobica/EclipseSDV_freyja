@@ -1,0 +1,20 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+# SPDX-License-Identifier: MIT
+
+[package]
+name = "freyja-test-common"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+async-trait = { workspace = true }
+cloud-connector-proto = { workspace = true }
+core-protobuf-data-access = { workspace = true }
+freyja-common = { workspace = true }
+mapping-service-proto = { workspace = true }
+mockall = { workspace = true }
+tokio = { workspace = true }
+tonic = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }

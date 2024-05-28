@@ -2,22 +2,23 @@
 // Licensed under the MIT license.
 // SPDX-License-Identifier: MIT
 
-use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
 use log::debug;
+use tokio::sync::Mutex;
 use tonic::transport::Channel;
 
-use cloud_connector_proto::{
-    prost_types::Timestamp,
-    v1::{cloud_connector_client::CloudConnectorClient, UpdateDigitalTwinRequestBuilder},
+use cloud_connector_proto::v1::{
+    cloud_connector_client::CloudConnectorClient, UpdateDigitalTwinRequestBuilder,
 };
 use freyja_build_common::config_file_stem;
 use freyja_common::{
     cloud_adapter::{CloudAdapter, CloudAdapterError, CloudMessageRequest, CloudMessageResponse},
     config_utils, out_dir,
     retry_utils::execute_with_retry,
+    service_discovery_adapter_selector::ServiceDiscoveryAdapterSelector,
 };
 
 use crate::config::Config;
@@ -34,7 +35,12 @@ pub struct GRPCCloudAdapter {
 #[async_trait]
 impl CloudAdapter for GRPCCloudAdapter {
     /// Creates a new instance of a CloudAdapter with default settings
-    fn create_new() -> Result<Self, CloudAdapterError> {
+    ///
+    /// # Arguments
+    /// - `selector`: the service discovery adapter selector to use
+    fn create_new(
+        selector: Arc<Mutex<dyn ServiceDiscoveryAdapterSelector>>,
+    ) -> Result<Self, CloudAdapterError> {
         let config: Config = config_utils::read_from_files(
             config_file_stem!(),
             config_utils::JSON_EXT,
@@ -43,11 +49,17 @@ impl CloudAdapter for GRPCCloudAdapter {
             CloudAdapterError::deserialize,
         )?;
 
+        let cloud_connector_uri = futures::executor::block_on(async {
+            let selector = selector.lock().await;
+            selector.get_service_uri(&config.service_discovery_id).await
+        })
+        .map_err(CloudAdapterError::communication)?;
+
         let client = futures::executor::block_on(async {
             execute_with_retry(
                 config.max_retries,
                 Duration::from_millis(config.retry_interval_ms),
-                || CloudConnectorClient::connect(config.target_uri.clone()),
+                || CloudConnectorClient::connect(cloud_connector_uri.clone()),
                 Some("Cloud adapter initial connection".into()),
             )
             .await
@@ -68,12 +80,9 @@ impl CloudAdapter for GRPCCloudAdapter {
     ) -> Result<CloudMessageResponse, CloudAdapterError> {
         debug!("Received a request to send to the cloud");
 
-        let timestamp = Timestamp::from_str(cloud_message.signal_timestamp.as_str())
-            .map_err(CloudAdapterError::deserialize)?;
-
         let request = UpdateDigitalTwinRequestBuilder::new()
             .string_value(cloud_message.signal_value)
-            .timestamp(timestamp)
+            .timestamp_offset(cloud_message.signal_timestamp)
             .metadata(cloud_message.metadata)
             .build();
 
@@ -110,67 +119,20 @@ mod grpc_cloud_adapter_tests {
     mod unix_tests {
         use super::*;
 
-        use std::{
-            io::{stderr, Write},
-            path::PathBuf,
-        };
+        use std::path::PathBuf;
 
         use tokio::net::{UnixListener, UnixStream};
         use tokio_stream::wrappers::UnixListenerStream;
         use tonic::{
             transport::{Channel, Endpoint, Server, Uri},
-            Request, Response, Status,
+            Response,
         };
         use tower::service_fn;
-        use uuid::Uuid;
 
         use cloud_connector_proto::v1::{
-            cloud_connector_server::{CloudConnector, CloudConnectorServer},
-            UpdateDigitalTwinRequest, UpdateDigitalTwinResponse,
+            cloud_connector_server::CloudConnectorServer, UpdateDigitalTwinResponse,
         };
-
-        pub struct TestFixture {
-            pub socket_path: PathBuf,
-        }
-
-        impl TestFixture {
-            fn new() -> Self {
-                Self {
-                    socket_path: std::env::temp_dir()
-                        .as_path()
-                        .join(Uuid::new_v4().as_hyphenated().to_string()),
-                }
-            }
-        }
-
-        impl Drop for TestFixture {
-            fn drop(&mut self) {
-                match std::fs::remove_file(&self.socket_path) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        write!(stderr(), "Error cleaning up `TestFixture`: {e:?}")
-                            .expect("Error writing to stderr");
-                    }
-                }
-            }
-        }
-
-        pub struct MockCloudConnector {}
-
-        #[tonic::async_trait]
-        impl CloudConnector for MockCloudConnector {
-            /// Updates a digital twin instance
-            ///
-            /// # Arguments
-            /// - `request`: the request to send
-            async fn update_digital_twin(
-                &self,
-                _request: Request<UpdateDigitalTwinRequest>,
-            ) -> Result<Response<UpdateDigitalTwinResponse>, Status> {
-                let response = UpdateDigitalTwinResponse {};
-                Ok(Response::new(response))
-            }
-        }
+        use freyja_test_common::{fixtures::GRPCTestFixture, mocks::MockCloudConnector};
 
         async fn create_test_grpc_client(socket_path: PathBuf) -> CloudConnectorClient<Channel> {
             let channel = Endpoint::try_from("http://URI_IGNORED") // Devskim: ignore DS137138
@@ -186,9 +148,12 @@ mod grpc_cloud_adapter_tests {
         }
 
         async fn run_test_grpc_server(uds_stream: UnixListenerStream) {
-            let mock_azure_connector = MockCloudConnector {};
+            let mut mock_cloud_connector = MockCloudConnector::new();
+            mock_cloud_connector
+                .expect_update_digital_twin()
+                .returning(|_| Ok(Response::new(UpdateDigitalTwinResponse::default())));
             Server::builder()
-                .add_service(CloudConnectorServer::new(mock_azure_connector))
+                .add_service(CloudConnectorServer::new(mock_cloud_connector))
                 .serve_with_incoming(uds_stream)
                 .await
                 .unwrap();
@@ -196,7 +161,7 @@ mod grpc_cloud_adapter_tests {
 
         #[tokio::test]
         async fn send_request_to_provider() {
-            let fixture = TestFixture::new();
+            let fixture = GRPCTestFixture::new();
 
             // Create the Unix Socket
             let uds = UnixListener::bind(&fixture.socket_path).unwrap();

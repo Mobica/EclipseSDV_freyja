@@ -173,7 +173,7 @@ impl<TCloudAdapter: CloudAdapter, TDataAdapterSelector: DataAdapterSelector>
         let cloud_message = CloudMessageRequest {
             metadata: signal.target.metadata.clone(),
             signal_value: converted,
-            signal_timestamp: OffsetDateTime::now_utc().to_string(),
+            signal_timestamp: OffsetDateTime::now_utc(),
         };
 
         let response = self
@@ -201,44 +201,12 @@ proc_macros::error! {
 #[cfg(test)]
 mod emitter_tests {
     use super::*;
-    use mockall::*;
-
-    use async_trait::async_trait;
 
     use freyja_common::{
-        cloud_adapter::{CloudAdapterError, CloudAdapterErrorKind},
-        data_adapter::DataAdapterFactory,
-        data_adapter_selector::DataAdapterSelectorError,
-        entity::Entity,
+        cloud_adapter::CloudAdapterErrorKind,
         signal::{Emission, EmissionPolicy},
     };
-
-    mock! {
-        pub CloudAdapter {}
-
-        #[async_trait]
-        impl CloudAdapter for CloudAdapter {
-            fn create_new() -> Result<Self, CloudAdapterError>
-            where
-                Self: Sized;
-
-            async fn send_to_cloud(
-                &self,
-                cloud_message: CloudMessageRequest,
-            ) -> Result<CloudMessageResponse, CloudAdapterError>;
-        }
-    }
-
-    mock! {
-        pub DataAdapterSelector {}
-
-        #[async_trait]
-        impl DataAdapterSelector for DataAdapterSelector {
-            fn register(&mut self, factory: Box<dyn DataAdapterFactory + Send + Sync>) -> Result<(), DataAdapterSelectorError>;
-            async fn create_or_update_adapter(&self, entity: &Entity) -> Result<(), DataAdapterSelectorError>;
-            async fn request_entity_value(&self, entity_id: &str) -> Result<(), DataAdapterSelectorError>;
-        }
-    }
+    use freyja_test_common::mocks::{MockCloudAdapter, MockDataAdapterSelector};
 
     #[tokio::test]
     async fn emit_data_returns_default_on_empty_input() {

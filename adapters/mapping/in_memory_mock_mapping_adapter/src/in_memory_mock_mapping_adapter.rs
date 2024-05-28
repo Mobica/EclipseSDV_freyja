@@ -2,14 +2,26 @@
 // Licensed under the MIT license.
 // SPDX-License-Identifier: MIT
 
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::{
+    atomic::{AtomicU8, Ordering},
+    Arc,
+};
 
 use async_trait::async_trait;
+use tokio::sync::Mutex;
 
 use crate::config::Config;
 use freyja_build_common::config_file_stem;
-use freyja_common::mapping_adapter::*;
-use freyja_common::{config_utils, out_dir};
+
+use freyja_common::{
+    config_utils,
+    mapping_adapter::{
+        CheckForWorkRequest, CheckForWorkResponse, GetMappingRequest, GetMappingResponse,
+        MappingAdapter, MappingAdapterError,
+    },
+    out_dir,
+    service_discovery_adapter_selector::ServiceDiscoveryAdapterSelector,
+};
 
 /// Mocks a mapping provider in memory
 pub struct InMemoryMockMappingAdapter {
@@ -37,7 +49,12 @@ impl InMemoryMockMappingAdapter {
 #[async_trait]
 impl MappingAdapter for InMemoryMockMappingAdapter {
     /// Creates a new instance of an InMemoryMockMappingAdapter with default settings
-    fn create_new() -> Result<Self, MappingAdapterError> {
+    ///
+    /// # Arguments
+    /// - `_selector`: the service discovery adapter selector to use (unused by this adapter)
+    fn create_new(
+        _selector: Arc<Mutex<dyn ServiceDiscoveryAdapterSelector>>,
+    ) -> Result<Self, MappingAdapterError> {
         let config = config_utils::read_from_files(
             config_file_stem!(),
             config_utils::JSON_EXT,
@@ -93,17 +110,20 @@ impl MappingAdapter for InMemoryMockMappingAdapter {
 
 #[cfg(test)]
 mod in_memory_mock_mapping_adapter_tests {
-    use crate::config::ConfigItem;
-
     use super::*;
 
     use std::collections::HashMap;
 
     use freyja_common::{conversion::Conversion, digital_twin_map_entry::DigitalTwinMapEntry};
+    use freyja_test_common::mocks::MockServiceDiscoveryAdapterSelector;
+
+    use crate::config::ConfigItem;
 
     #[test]
     fn can_create_new() {
-        let result = InMemoryMockMappingAdapter::create_new();
+        let result = InMemoryMockMappingAdapter::create_new(Arc::new(Mutex::new(
+            MockServiceDiscoveryAdapterSelector::new(),
+        )));
         assert!(result.is_ok());
     }
 

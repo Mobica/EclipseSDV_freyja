@@ -8,40 +8,44 @@ resolver = "2"
 members = [
   "adapters/cloud/grpc_cloud_adapter",
   "adapters/cloud/in_memory_mock_cloud_adapter",
-  "adapters/data/http_mock_data_adapter",
   "adapters/data/in_memory_mock_data_adapter",
   "adapters/data/managed_subscribe_data_adapter",
   "adapters/data/mqtt_data_adapter",
   "adapters/data/sample_grpc_data_adapter",
   "adapters/digital_twin/grpc_digital_twin_adapter",
   "adapters/digital_twin/in_memory_mock_digital_twin_adapter",
-  "adapters/digital_twin/mock_digital_twin_adapter",
   "adapters/mapping/grpc_mapping_adapter",
   "adapters/mapping/in_memory_mock_mapping_adapter",
-  "adapters/mapping/mock_mapping_service_adapter",
   "adapters/service_discovery/file_service_discovery_adapter",
   "adapters/service_discovery/grpc_service_discovery_adapter",
   "build_common",
   "common",
   "freyja",
+  "mocks/mock_cloud_connector",
   "mocks/mock_digital_twin",
   "mocks/mock_mapping_service",
   "proc_macros",
   "proto/cloud_connector",
+  "proto/common",
+  "proto/core_protobuf_data_access",
   "proto/mapping_service",
+  "proto/samples_protobuf_data_access",
+  "proto/service_discovery_proto",
+  "test_common",
 ]
 
 [workspace.dependencies]
 # Freyja libraries from this workspace
 cloud-connector-proto = { path = "proto/cloud_connector" }
+core-protobuf-data-access = { path = "proto/core_protobuf_data_access" }
 file-service-discovery-adapter = { path = "adapters/service_discovery/file_service_discovery_adapter" }
 freyja-build-common = { path = "build_common" }
 freyja-common = { path = "common" }
+freyja-test-common = { path = "test_common" }
 grpc-cloud-adapter = { path = "adapters/cloud/grpc_cloud_adapter" }
 grpc-digital-twin-adapter = { path = "adapters/digital_twin/grpc_digital_twin_adapter" }
 grpc-mapping-adapter = { path = "adapters/mapping/grpc_mapping_adapter" }
 grpc-service-discovery-adapter = { path = "adapters/service_discovery/grpc_service_discovery_adapter" }
-http-mock-data-adapter = { path = "adapters/data/http_mock_data_adapter" }
 in-memory-mock-cloud-adapter = { path = "adapters/cloud/in_memory_mock_cloud_adapter" }
 in-memory-mock-data-adapter = { path = "adapters/data/in_memory_mock_data_adapter" }
 in-memory-mock-digital-twin-adapter = { path ="adapters/digital_twin/in_memory_mock_digital_twin_adapter" }
@@ -49,42 +53,37 @@ in-memory-mock-mapping-adapter = { path = "adapters/mapping/in_memory_mock_mappi
 managed-subscribe-data-adapter = { path = "adapters/data/managed_subscribe_data_adapter" }
 mapping-service-proto = { path = "proto/mapping_service" }
 mock-digital-twin = { path = "mocks/mock_digital_twin" }
-mock-digital-twin-adapter = { path = "adapters/digital_twin/mock_digital_twin_adapter" }
-mock-mapping-service-adapter = { path = "adapters/mapping/mock_mapping_service_adapter" }
 mqtt-data-adapter = { path = "adapters/data/mqtt_data_adapter" }
 proc-macros = { path = "proc_macros" }
+proto-common = { path = "proto/common" }
 sample-grpc-data-adapter = { path = "adapters/data/sample_grpc_data_adapter" }
-
-# Other SDV projects. Versioning is handled by the Cargo.lock file
-core-protobuf-data-access = { git = "https://github.com/eclipse-ibeji/ibeji" }
-samples-protobuf-data-access = { git = "https://github.com/eclipse-ibeji/ibeji" }
-service_discovery_proto = { git = "https://github.com/eclipse-chariott/chariott" }
+samples-protobuf-data-access = { path = "proto/samples_protobuf_data_access" }
+service_discovery_proto = { path = "proto/service_discovery_proto" }
 
 # crates.io dependencies
-async-trait = "0.1.77"
-axum = "0.7.4"
+async-trait = "0.1.80"
 config = "0.14.0"
 convert_case = "0.6.0"
-env_logger = "0.11.2"
+env_logger = "0.11.3"
 futures = "0.3.30"
 home = "0.5.9"
 log = "^0.4"
 mockall = "0.12.1"
 paho-mqtt = "0.12"
-proc-macro2 = "1.0.78"
+proc-macro2 = "1.0.81"
 prost = "0.12"
 prost-types = "0.12"
-quote = "1.0.23"
-reqwest = { version = "0.11.24", features = ["json"] }
-serde = { version = "1.0.196", features = ["derive"] }
-serde_json = "1.0.113"
+quote = "1.0.36"
+serde = { version = "1.0.199", features = ["derive"] }
+serde_json = "1.0.116"
 strum = "0.26.1"
-strum_macros = "0.26.1"
-syn = { version = "2.0.40", features = ["extra-traits", "full"] }
-time = "0.3.34"
-tokio = { version = "1.36", features = ["macros", "rt-multi-thread", "time", "sync", "test-util"] }
-tokio-stream = { version = "0.1.8", features = ["net"] }
+strum_macros = "0.26.2"
+syn = { version = "2.0.60", features = ["extra-traits", "full"] }
+time = "0.3.36"
+tokio = { version = "1.37", features = ["macros", "rt-multi-thread", "time", "sync", "test-util"] }
+tokio-stream = { version = "0.1.15", features = ["net"] }
 tonic = "0.11.0"
 tonic-build = "0.11.0"
 tower = { version = "0.4", features = ["util"] }
-uuid = "1.7.0"
+uuid = "1.8.0"
+ureq = "2.9.7"

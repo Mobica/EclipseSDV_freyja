@@ -2,15 +2,24 @@
 // Licensed under the MIT license.
 // SPDX-License-Identifier: MIT
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
+use tokio::sync::Mutex;
+
+use crate::service_discovery_adapter_selector::ServiceDiscoveryAdapterSelector;
 
 #[async_trait]
 pub trait CloudAdapter {
     /// Creates a new instance of a CloudAdapter with default settings
-    fn create_new() -> Result<Self, CloudAdapterError>
+    ///
+    /// # Arguments
+    /// - `selector`: the service discovery adapter selector to use
+    fn create_new(
+        selector: Arc<Mutex<dyn ServiceDiscoveryAdapterSelector>>,
+    ) -> Result<Self, CloudAdapterError>
     where
         Self: Sized;
 
@@ -34,7 +43,7 @@ pub struct CloudMessageRequest {
     pub signal_value: String,
 
     // Timestamp of when the signal was emitted
-    pub signal_timestamp: String,
+    pub signal_timestamp: OffsetDateTime,
 }
 
 /// Represents a response to a message sent to the cloud digital twin
