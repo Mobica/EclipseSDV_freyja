@@ -15,4 +15,7 @@ pub struct Config {
 
     /// Retry interval in milliseconds
     pub retry_interval_ms: u64,
+
+    /// Cloud connector server uri
+    pub target_uri: String
 }

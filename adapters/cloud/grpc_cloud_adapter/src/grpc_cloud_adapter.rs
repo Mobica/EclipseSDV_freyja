@@ -49,7 +49,7 @@ impl CloudAdapter for GRPCCloudAdapter {
             CloudAdapterError::deserialize,
         )?;
 
-        let cloud_connector_uri = futures::executor::block_on(async {
+        let _cloud_connector_uri = futures::executor::block_on(async {
             let selector = selector.lock().await;
             selector.get_service_uri(&config.service_discovery_id).await
         })
@@ -59,7 +59,7 @@ impl CloudAdapter for GRPCCloudAdapter {
             execute_with_retry(
                 config.max_retries,
                 Duration::from_millis(config.retry_interval_ms),
-                || CloudConnectorClient::connect(cloud_connector_uri.clone()),
+                || CloudConnectorClient::connect(config.target_uri.clone()),
                 Some("Cloud adapter initial connection".into()),
             )
             .await

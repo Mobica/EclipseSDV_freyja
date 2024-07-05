@@ -24,13 +24,14 @@ proc-macros = { workspace = true }
 sample-grpc-data-adapter = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true }
+in-memory-mock-mapping-adapter = { workspace = true }
 
 [dev-dependencies]
 # Dependencies for testing
 freyja-test-common = { workspace = true }
 
 # Dependencies for examples
-in-memory-mock-cloud-adapter = { workspace = true }
-in-memory-mock-digital-twin-adapter = { workspace = true }
-in-memory-mock-data-adapter = { workspace = true }
-in-memory-mock-mapping-adapter = { workspace = true }
+#in-memory-mock-cloud-adapter = { workspace = true }
+#in-memory-mock-digital-twin-adapter = { workspace = true }
+#in-memory-mock-data-adapter = { workspace = true }
+

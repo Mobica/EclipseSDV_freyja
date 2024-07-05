@@ -106,11 +106,15 @@ impl DataAdapter for MqttDataAdapter {
             info!("Started MQTT listener");
             for msg in receiver.iter() {
                 if let Some(m) = msg {
-                    let subsciptions = subscriptions.lock().await;
-                    let entity_id = subsciptions.get(m.topic()).unwrap().clone();
-                    let value = message_utils::parse_value(m.payload_str().to_string());
-                    if signals.set_value(entity_id, value).is_none() {
-                        log::warn!("Attempt to set value for non-existent signal");
+                    let subscriptions = subscriptions.lock().await;
+
+                    for (key, _val) in subscriptions.iter() {
+                        let entity_id = subscriptions.get(key).unwrap().clone();
+                        let value = message_utils::parse_values(m.payload_str().to_string(), &entity_id);
+
+                    	if signals.set_value(entity_id, value).is_none() {
+                        	log::warn!("Attempt to set value for non-existent signal");
+                    	}
                     }
                 } else {
                     let client = client.lock().await;

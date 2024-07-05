@@ -74,6 +74,26 @@ pub fn parse_value(value: String) -> String {
     }
 }
 
+pub fn parse_values(string: String, entity_id: &str) -> String {
+	let elements = string.split(",");
+	let mut value = String::new();
+
+	for element in elements {
+		if !element.contains(METADATA_KEY) {
+			value = element.split_once(":").unwrap().1.to_string();
+		} else {
+			let metadata = element.split_once(":").unwrap().1;
+			let model = metadata.split_once(":").unwrap().1;
+
+			if model[1..model.len() - 2] == *entity_id {
+				break;
+			}
+		}
+	}
+
+	value
+}
+
 #[cfg(test)]
 mod message_utils_tests {
     use super::*;

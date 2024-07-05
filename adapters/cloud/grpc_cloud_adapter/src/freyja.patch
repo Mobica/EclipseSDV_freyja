@@ -1,0 +1,24 @@
+diff --git a/adapters/cloud/grpc_cloud_adapter/src/grpc_cloud_adapter.rs b/adapters/cloud/grpc_cloud_adapter/src/grpc_cloud_adapter.rs
+index 6794382..0357ad5 100644
+--- a/adapters/cloud/grpc_cloud_adapter/src/grpc_cloud_adapter.rs
++++ b/adapters/cloud/grpc_cloud_adapter/src/grpc_cloud_adapter.rs
+@@ -59,7 +59,7 @@ impl CloudAdapter for GRPCCloudAdapter {
+             execute_with_retry(
+                 config.max_retries,
+                 Duration::from_millis(config.retry_interval_ms),
+-                || CloudConnectorClient::connect(cloud_connector_uri.clone()),
++                || CloudConnectorClient::connect(config.target_uri.clone()),
+                 Some("Cloud adapter initial connection".into()),
+             )
+             .await
+diff --git a/adapters/cloud/grpc_cloud_adapter/src/config.rs b/adapters/cloud/grpc_cloud_adapter/src/config.rs
+index 97aa74f..dee7445 100644
+--- a/adapters/cloud/grpc_cloud_adapter/src/config.rs
++++ b/adapters/cloud/grpc_cloud_adapter/src/config.rs
+@@ -15,4 +15,6 @@ pub struct Config {
+ 
+     /// Retry interval in milliseconds
+     pub retry_interval_ms: u64,
++    
++    pub target_uri: String,
+ }
