@@ -83,6 +83,7 @@ impl<
     /// 1. Sleep until the next iteration
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut failed_signals: Vec<SignalPatch> = Vec::new();
+        let mut alreadyMapped = false;
         loop {
             let mut successes = Vec::new();
 
@@ -92,7 +93,7 @@ impl<
                 .check_for_work(CheckForWorkRequest {})
                 .await
             {
-                Ok(r) if r.has_work => {
+                Ok(r) if r.has_work && alreadyMapped == false => {
                     info!("Cartographer detected mapping work");
 
                     match self.get_mapping_as_signal_patches().await {
@@ -103,6 +104,7 @@ impl<
                             self.process_signal_patches(&p, &mut successes, &mut failed_signals)
                                 .await;
                             self.signals.sync(successes.into_iter());
+                            alreadyMapped = true;
                         }
                         Err(e) => log::error!("Failed to get mapping from mapping adapter: {e}"),
                     }
